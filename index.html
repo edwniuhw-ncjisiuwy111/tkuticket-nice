@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>聖淡江至校園演唱會 - 線上索票系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { 
+      background-color: #080312; 
+      color: #f8fafc; 
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(236, 72, 153, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+    }
+    .neon-card { 
+      background: rgba(15, 10, 30, 0.75); 
+      backdrop-filter: blur(16px); 
+      border: 1px solid rgba(236, 72, 153, 0.3);
+      box-shadow: 0 0 20px rgba(236, 72, 153, 0.15), inset 0 0 15px rgba(6, 182, 212, 0.1);
+    }
+    .neon-card-cyan {
+      background: rgba(15, 10, 30, 0.75); 
+      backdrop-filter: blur(16px); 
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+    }
+    .neon-text-pink { text-shadow: 0 0 10px rgba(236, 72, 153, 0.7); }
+    .neon-text-cyan { text-shadow: 0 0 10px rgba(6, 182, 212, 0.7); }
+  </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="min-h-screen pb-12">
+  <!-- Header -->
+  <header class="border-b border-pink-500/30 bg-slate-950/80 backdrop-blur fixed top-0 w-full z-50 shadow-lg shadow-pink-500/10">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-bolt text-2xl text-pink-500 animate-pulse"></i>
+        <div>
+          <h1 class="text-xl font-black bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 bg-clip-text text-transparent tracking-widest uppercase">
+            聖淡江至校園演唱會
+          </h1>
+          <p class="text-xs text-cyan-400 font-mono tracking-wider">TKU CONCERT 2026 // 2000 SEATS LIMITED</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-5xl mx-auto px-4 pt-24 space-y-8">
+    <!-- Banner & 倒數計時區塊 -->
+    <div class="neon-card rounded-2xl p-6 md:p-8 text-center relative overflow-hidden border-pink-500/50">
+      <div class="inline-block bg-pink-500/10 border border-pink-500/40 text-pink-400 px-3 py-1 rounded-full text-xs font-mono mb-3">
+        <i class="fa-solid fa-compact-disc animate-spin mr-1"></i> NEON NIGHT PARTY
+      </div>
+      <h2 class="text-3xl md:text-5xl font-black text-white tracking-wide mb-2 neon-text-pink uppercase">
+        2026 聖淡江至演唱會
+      </h2>
+      <p class="text-slate-300 text-sm md:text-base max-w-xl mx-auto mb-6">
+        請輸入學號完成線上登記，憑系統生成的領票憑證與學生證至指定地點領取實體紙本入場票。
+      </p>
+
+      <!-- 倒數開搶時間 CountDown -->
+      <div class="mb-6 bg-slate-950/90 border border-pink-500/40 p-4 rounded-xl max-w-md mx-auto shadow-inner">
+        <div class="text-xs text-pink-400 font-mono mb-2 uppercase tracking-widest flex items-center justify-center gap-2">
+          <i class="fa-solid fa-stopwatch animate-bounce"></i> 距離開放索票倒數（2026/10/30 23:05 開搶）
+        </div>
+        <div class="grid grid-cols-4 gap-2 font-mono text-center">
+          <div class="bg-slate-900 border border-pink-500/20 p-2 rounded-lg">
+            <span id="timer-days" class="text-xl md:text-2xl font-black text-cyan-400 neon-text-cyan">00</span>
+            <span class="block text-[10px] text-slate-400 uppercase">Days</span>
+          </div>
+          <div class="bg-slate-900 border border-pink-500/20 p-2 rounded-lg">
+            <span id="timer-hours" class="text-xl md:text-2xl font-black text-cyan-400 neon-text-cyan">00</span>
+            <span class="block text-[10px] text-slate-400 uppercase">Hours</span>
+          </div>
+          <div class="bg-slate-900 border border-pink-500/20 p-2 rounded-lg">
+            <span id="timer-minutes" class="text-xl md:text-2xl font-black text-cyan-400 neon-text-cyan">00</span>
+            <span class="block text-[10px] text-slate-400 uppercase">Mins</span>
+          </div>
+          <div class="bg-slate-900 border border-pink-500/20 p-2 rounded-lg">
+            <span id="timer-seconds" class="text-xl md:text-2xl font-black text-pink-400 neon-text-pink">00</span>
+            <span class="block text-[10px] text-slate-400 uppercase">Secs</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Live Counter -->
+      <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-pink-500/40 shadow-inner">
+          <div class="text-xs text-pink-400 font-mono mb-1">一樓自由站立席</div>
+          <div class="text-2xl font-extrabold text-pink-400 font-mono neon-text-pink"><span id="floor1-left">1500</span> <span class="text-xs text-slate-500 font-normal">/ 1500 張</span></div>
+        </div>
+        <div class="bg-slate-950/80 p-4 rounded-xl border border-cyan-500/40 shadow-inner">
+          <div class="text-xs text-cyan-400 font-mono mb-1">二樓自由座席</div>
+          <div class="text-2xl font-extrabold text-cyan-400 font-mono neon-text-cyan"><span id="floor2-left">500</span> <span class="text-xs text-slate-500 font-normal">/ 500 張</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 活動說明與注意事項 -->
+    <div class="neon-card-cyan rounded-2xl p-6 space-y-4">
+      <h3 class="text-lg font-bold text-cyan-400 flex items-center gap-2 border-b border-cyan-500/20 pb-3">
+        <i class="fa-solid fa-terminal"></i> 活動資訊與注意事項
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-xs text-pink-400 font-mono tracking-wider">EVENT TIME & VENUE</div>
+          <div class="text-slate-200"><span class="text-cyan-400 font-bold">開放進場時間：</span>18:30</div>
+          <div class="text-slate-200"><span class="text-cyan-400 font-bold">演唱會開始時間：</span>19:00</div>
+          <div class="text-slate-200 pt-1 border-t border-slate-800"><span class="text-cyan-400 font-bold">入口及驗票口：</span>活動中心後門（靠宮燈教室側）</div>
+        </div>
+        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2">
+          <div class="text-xs text-cyan-400 font-mono tracking-wider">TICKET & MEMBERSHIP</div>
+          <div class="text-slate-200"><span class="text-pink-400 font-bold">一般學生票價：</span>350 元 (一樓) / 250 元 (二樓)</div>
+          <div class="text-slate-200"><span class="text-pink-400 font-bold">學生會會員票價：</span>250 元 (一樓) / 200 元 (二樓)</div>
+          <div class="text-xs text-slate-400 pt-1 border-t border-slate-800">* 會員票資格：於學期初有繳納學生會費者</div>
+        </div>
+      </div>
+      <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-2">
+        <div class="font-bold text-pink-400 text-sm mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 注意事項：</div>
+        <ol class="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-300">
+          <li>領票時請準備學生證至指定領票處進行身份核對，並且進行領票。</li>
+          <li>入場時會進行包包安檢，若有超過 A3 大小包包皆禁止帶入會場，須提前寄放於包包放置區。</li>
+        </ol>
+        <div class="pt-2 text-slate-400 border-t border-slate-800 flex items-center gap-1.5">
+          <i class="fa-brands font-bold text-pink-400 fa-instagram text-sm"></i>
+          <span>若對於以上資訊有疑問，請私訊學生會 IG：<a href="https://instagram.com/tkusagram" target="_blank" class="text-cyan-400 hover:underline font-mono">tkusagram</a></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 索票表單 -->
+    <div class="neon-card rounded-2xl p-6 md:p-8 max-w-2xl mx-auto" id="booking-section">
+      <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-pink-400">
+        <i class="fa-solid fa-ticket"></i> 線上登記索票
+      </h3>
+      <form id="ticket-form" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2 font-mono">STUDENT ID / 淡江學號 (9位數)</label>
+          <input type="text" id="student-id" maxlength="9" placeholder="例如：411650123" required
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 uppercase font-mono">
+          <p class="text-xs text-slate-400 mt-1">* 請輸入正確的 9 位數淡江學號，每個學號上限索取 4 張票</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-300 mb-2 font-mono">NAME / 學生姓名</label>
+          <input type="text" id="student-name" placeholder="請輸入姓名" required
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2 font-mono">SEAT TYPE / 選擇票種</label>
+            <select id="seat-type" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500">
+              <option value="1F" id="opt-1F">一樓自由站立席 (1500席)</option>
+              <option value="2F" id="opt-2F">二樓自由座席 (500席)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-2 font-mono">QUANTITY / 張數</label>
+            <select id="ticket-qty" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 font-mono"></select>
+          </div>
+        </div>
+        <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-pink-600 via-purple-600 to-cyan-500 hover:from-pink-500 hover:to-cyan-400 text-white font-black py-4 rounded-xl shadow-lg shadow-pink-500/25 transition duration-200 disabled:opacity-50 tracking-wider uppercase">
+          CONFIRM & RESERVE / 確認登記索票
+        </button>
+      </form>
+    </div>
+
+    <!-- 領票憑證結果 -->
+    <div id="pass-container" class="hidden max-w-2xl mx-auto">
+      <div class="neon-card rounded-2xl p-6 border-pink-500/80 bg-slate-950/95 text-center space-y-4 shadow-2xl shadow-pink-500/20">
+        <div class="text-cyan-400 text-5xl mb-2 neon-text-cyan"><i class="fa-solid fa-circle-check"></i></div>
+        <h3 class="text-2xl font-black text-white tracking-wide">索票成功！實體領票憑證</h3>
+        
+        <div class="bg-amber-500/10 border-2 border-amber-400/80 rounded-xl p-3 my-2 shadow-lg shadow-amber-500/10">
+          <p class="text-base md:text-lg font-black text-amber-300 tracking-wide flex items-center justify-center gap-2">
+            <i class="fa-solid fa-camera text-xl animate-pulse"></i> 
+            請務必拍照或截圖保存此憑證，至活動中心領取紙本入場票！
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 p-4 rounded-xl text-left font-mono text-sm space-y-2 border border-pink-500/30">
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">憑證編號:</span>
+            <span id="pass-id" class="text-pink-400 font-bold neon-text-pink">--</span>
+          </div>
+          <div class="flex justify-between"><span class="text-slate-400">淡江學號:</span><span id="pass-student-id" class="text-white">--</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">姓名:</span><span id="pass-name" class="text-white">--</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">票種與張數:</span><span id="pass-details" class="text-cyan-400 font-bold">--</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- 搶票開搶時間設定：2026/10/30 23:05:00 (月份 index 9 代表 10 月) ---
+    const targetDate = new Date(2026, 9, 30, 23, 5, 0).getTime(); 
+    let isSaleStarted = false;
+
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      if (distance < 0) {
+        document.getElementById('timer-days').innerText = "00";
+        document.getElementById('timer-hours').innerText = "00";
+        document.getElementById('timer-minutes').innerText = "00";
+        document.getElementById('timer-seconds').innerText = "00";
+        isSaleStarted = true;
+      } else {
+        document.getElementById('timer-days').innerText = String(days).padStart(2, '0');
+        document.getElementById('timer-hours').innerText = String(hours).padStart(2, '0');
+        document.getElementById('timer-minutes').innerText = String(minutes).padStart(2, '0');
+        document.getElementById('timer-seconds').innerText = String(seconds).padStart(2, '0');
+        isSaleStarted = false;
+      }
+      updateCounter();
+    }
+
+    setInterval(updateCountdown, 1000);
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD_BBnH0OJucP_CArSNw4KG_TL6ctIxshI",
+      authDomain: "tku-12a7b.firebaseapp.com",
+      databaseURL: "https://tku-12a7b-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tku-12a7b",
+      storageBucket: "tku-12a7b.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:603121666440:web:ee2ea8d25f07a64000d23d"
+    };
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+    } catch (e) {
+      console.error("Firebase 初始化失敗:", e);
+    }
+
+    const db = firebase.database();
+    let currentInventory = { '1F': 1500, '2F': 500 };
+    let allOrders = [];
+
+    updateQtyOptions();
+
+    db.ref('tku_concert').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        db.ref('tku_concert').set({
+          inventory: { '1F': 1500, '2F': 500 },
+          orders: {}
+        });
+        return;
+      }
+      currentInventory = data.inventory || { '1F': 1500, '2F': 500 };
+      allOrders = data.orders ? Object.values(data.orders) : [];
+      updateCounter();
+    }, (error) => {
+      console.error("Firebase 讀取權限錯誤:", error);
+      alert("資料庫連線受限，請檢查 Firebase Realtime Database 的 Rules 權限設定！");
+    });
+
+    function updateQtyOptions() {
+      const seat = document.getElementById('seat-type').value;
+      const qtySelect = document.getElementById('ticket-qty');
+      const stock = currentInventory[seat] || 0;
+      const currentSelected = parseInt(qtySelect.value) || 1;
+      qtySelect.innerHTML = '';
+
+      if (stock === 0) {
+        qtySelect.innerHTML = '<option value="0">無剩餘票數</option>';
+        qtySelect.disabled = true;
+        return;
+      }
+      qtySelect.disabled = false;
+      const maxSelectable = Math.min(stock, 4);
+      for (let i = 1; i <= maxSelectable; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.innerText = `${i} 張`;
+        if (i === Math.min(currentSelected, maxSelectable)) option.selected = true;
+        qtySelect.appendChild(option);
+      }
+    }
+
+    function updateCounter() {
+      const f1Left = currentInventory['1F'];
+      const f2Left = currentInventory['2F'];
+      document.getElementById('floor1-left').innerText = f1Left;
+      document.getElementById('floor2-left').innerText = f2Left;
+
+      const opt1F = document.getElementById('opt-1F');
+      const opt2F = document.getElementById('opt-2F');
+      const submitBtn = document.getElementById('submit-btn');
+
+      opt1F.disabled = f1Left <= 0;
+      opt1F.innerText = f1Left <= 0 ? '一樓自由站立席 (已售罄)' : '一樓自由站立席 (1500席)';
+      opt2F.disabled = f2Left <= 0;
+      opt2F.innerText = f2Left <= 0 ? '二樓自由座席 (已售罄)' : '二樓自由座席 (500席)';
+
+      if (!isSaleStarted) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = '搶票尚未開始 / COMING SOON';
+      } else if (f1Left <= 0 && f2Left <= 0) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = '票券已全部索取完畢 / SOLD OUT';
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'CONFIRM & RESERVE / 確認登記索票';
+      }
+      updateQtyOptions();
+    }
+
+    document.getElementById('seat-type').addEventListener('change', updateQtyOptions);
+
+    document.getElementById('ticket-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const studentIdInput = document.getElementById('student-id');
+      const studentId = studentIdInput.value.trim().toUpperCase();
+
+      const studentIdRegex = /^[0-9]{9}$/;
+      if (!studentIdRegex.test(studentId)) {
+        alert("請輸入有效的 9 位數淡江學號（例如：411650123）！");
+        studentIdInput.focus();
+        return;
+      }
+
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'PROCESSING...';
+
+      const name = document.getElementById('student-name').value.trim();
+      const seat = document.getElementById('seat-type').value;
+      const qty = parseInt(document.getElementById('ticket-qty').value);
+
+      const userOrders = allOrders.filter(o => o.studentId === studentId);
+      const currentClaimed = userOrders.reduce((sum, o) => sum + o.qty, 0);
+
+      if (currentClaimed + qty > 4) {
+        alert(`索票失敗！學號 ${studentId} 已索取 ${currentClaimed} 張，每人上限最多 4 張。`);
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'CONFIRM & RESERVE / 確認登記索票';
+        return;
+      }
+
+      db.ref('tku_concert/inventory/' + seat).transaction((currentStock) => {
+        if (currentStock === null) return 0;
+        if (currentStock < qty) return;
+        return currentStock - qty;
+      }, (error, committed) => {
+        if (error) {
+          alert('系統繁忙或資料庫無寫入權限，請再試一次！');
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'CONFIRM & RESERVE / 確認登記索票';
+        } else if (!committed) {
+          alert('該區域票數不足或已被搶購一空！');
+          submitBtn.disabled = false;
+          submitBtn.innerText = 'CONFIRM & RESERVE / 確認登記索票';
+        } else {
+          const passId = 'TKU2026-' + Math.floor(100000 + Math.random() * 900000);
+          const newOrder = {
+            passId,
+            studentId,
+            name,
+            seat: seat === '1F' ? '一樓自由站立席' : '二樓自由座席',
+            qty,
+            claimedPaperTicket: false,
+            createdAt: new Date().toLocaleString()
+          };
+
+          db.ref('tku_concert/orders/' + passId).set(newOrder).then(() => {
+            document.getElementById('pass-id').innerText = passId;
+            document.getElementById('pass-student-id').innerText = studentId;
+            document.getElementById('pass-name').innerText = name;
+            document.getElementById('pass-details').innerText = `${newOrder.seat} x ${qty} 張`;
+            document.getElementById('booking-section').classList.add('hidden');
+            document.getElementById('pass-container').classList.remove('hidden');
+          });
+        }
+      });
+    });
+
+    updateCountdown();
+  </script>
+</body>
+</html>
